@@ -1,0 +1,88 @@
+# Magenx_AbandonedCheckout
+
+Emails shoppers a **recovery reminder** when they leave items in their cart and
+don't check out. A cron scans active quotes, and for each one that has items, a
+captured email, and has sat untouched past a configurable delay, it sends a
+reminder listing the cart contents with a one-click link back to the cart.
+
+## How it works
+
+1. **`Cron/SendReminders`** (schedule `magenx_abandoned_checkout/cron/schedule`,
+   default `*/15 * * * *`) asks the finder for a batch of candidates and runs
+   each through the processor.
+2. **`Model/AbandonedCartFinder`** issues a single, index-friendly query over
+   `quote`: `is_active = 1`, `items_count > 0`, non-empty `customer_email`, no
+   `reserved_order_id`, `updated_at` inside a coarse default-scope window, and
+   not-yet-fully-reminded. The `(is_active, magenx_abandoned_notified_at,
+   updated_at)` index added in `db_schema.xml` backs it.
+3. **`Model/ReminderProcessor`** applies the exact, **store-scoped** rules
+   (enabled? past the delay? within max age? under the reminder cap? spaced from
+   the last reminder? above the min total?), loads the quote, re-checks it's
+   still active/has items (race guard), sends, and only then stamps the quote.
+4. **`Model/ReminderSender`** renders the frontend email template with a cart
+   items table and the recovery URL, scoped to the quote's store.
+5. **`Model/RecoveryUrl`** builds `{store base url}/{recovery_path}?id={masked}`.
+   The masked id is the quote's `quote_id_mask` value (created on demand for
+   customer carts that lack one) — the same value the headless storefront keys
+   its cart on.
+
+### Reminder bookkeeping (no extra table)
+
+Two columns are added to `quote` (`db_schema.xml`):
+
+- `magenx_abandoned_notified_at` — when the last reminder was sent (NULL = never)
+- `magenx_abandoned_reminder_count` — how many reminders have gone out
+
+They're written with a **targeted `UPDATE`** (`Model/ResourceModel/Reminder`),
+**not** a quote save — a quote save would bump `updated_at` and reset the
+abandoned clock, so the cart could never satisfy the max-age / repeat rules.
+
+## Storefront recovery route
+
+The email link points at the Next.js storefront route
+`apps/theme/src/app/[locale]/cart/recover/page.tsx`. It reads `?id=<maskedId>`,
+writes it to `localStorage["magenx_cart_id"]` (the key `CartProvider` reads),
+and does a **hard** navigation to `/cart` so the cart context re-initialises
+with the restored cart.
+
+Because each locale maps 1:1 to a Magento store view, set the **Storefront
+Recovery Path** per store view if your locale is part of the URL path (e.g.
+`de/cart/recover`). The default `cart/recover` relies on the store base URL /
+storefront middleware to resolve the locale.
+
+## Configuration
+
+**Stores → Configuration → Magenx → Abandoned Checkout Reminder**
+
+| Field | Config path | Default |
+| --- | --- | --- |
+| Enabled | `magenx_abandoned_checkout/general/enabled` | No |
+| Delay before first reminder (min) | `…/general/delay_minutes` | 60 |
+| Maximum cart age (hours) | `…/general/max_age_hours` | 168 |
+| Maximum reminders per cart | `…/general/max_reminders` | 1 |
+| Min interval between reminders (min) | `…/general/repeat_interval_minutes` | 1440 |
+| Batch size per cron run | `…/general/batch_size` | 50 |
+| Minimum cart total | `…/general/min_subtotal` | 0 |
+| Email template | `…/email/email_template` | `magenx_abandoned_checkout_email_email_template` |
+| Email sender | `…/email/sender_email_identity` | `sales` |
+| Storefront recovery path | `…/email/recovery_path` | `cart/recover` |
+| Cron schedule | `…/cron/schedule` | `*/15 * * * *` |
+
+Off by default — enablement, timing and the min total are all store-view
+scoped, so different store views behave independently.
+
+## Notes / limits
+
+- Guest carts only get a reminder once they have a `customer_email` on the quote
+  (typically captured at the email/shipping step). Logged-in customers always
+  have one.
+- The recovery link replaces whatever cart id is currently in the visitor's
+  browser with the abandoned one — intended for a shopper returning from the
+  email.
+
+## Install
+
+```
+bin/magento module:enable Magenx_AbandonedCheckout
+bin/magento setup:upgrade   # creates the two quote columns + index
+```

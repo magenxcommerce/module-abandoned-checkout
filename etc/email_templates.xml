@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * NOTE: the id must equal the config path of the system.xml field that selects
+ * this template, with '/' replaced by '_' — Magento\Config\Model\Config\Source\
+ * Email\Template derives it that way for its "(Default)" option, and an
+ * undeclared id throws while the config form is built. In production mode
+ * Magento\Framework\View\Layout swallows that and renders the section BLANK.
+ * Field path magenx_abandoned_checkout/email/email_template, hence the doubled
+ * "email" (same shape as core's contact_email_email_template).
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Email:etc/email_templates.xsd">
+    <template id="magenx_abandoned_checkout_email_email_template" label="Abandoned Cart Reminder" file="abandoned_cart.html" type="html" module="Magenx_AbandonedCheckout" area="frontend"/>
+</config>

@@ -1,0 +1,42 @@
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<!--@subject {{trans "You left something in your cart"}} @-->
+<!--@vars {
+"var customer_name":"Customer Name",
+"var store_name":"Store Name",
+"var recovery_url":"Cart Recovery URL",
+"var items_html|raw":"Cart Items Table",
+"var grand_total":"Cart Grand Total",
+"template config_path=\"design\/email\/footer_template\"":"Email Footer Template",
+"template config_path=\"design\/email\/header_template\"":"Email Header Template"
+} @-->
+
+{{template config_path="design/email/header_template"}}
+
+<p class="greeting">{{trans "Hi %customer_name," customer_name=$customer_name}}</p>
+
+<p>{{trans "You left some items in your cart at %store_name. We saved them for you — pick up right where you left off." store_name=$store_name}}</p>
+
+{{var items_html|raw}}
+
+<p style="margin-top:12px;"><strong>{{trans "Cart total:"}}</strong> {{var grand_total}}</p>
+
+<table border="0" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tbody>
+        <tr>
+            <td style="border-radius:4px;background-color:#1979c3;">
+                <a href="{{var recovery_url}}" target="_blank"
+                   style="display:inline-block;padding:12px 24px;color:#ffffff;font-weight:bold;text-decoration:none;">
+                    {{trans "Return to your cart"}}
+                </a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p style="color:#888;font-size:12px;">{{trans "If the button does not work, copy and paste this link into your browser:"}}<br/>{{var recovery_url}}</p>
+
+{{template config_path="design/email/footer_template"}}

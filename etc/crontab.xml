@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="magenx_abandoned_checkout_reminders" instance="Magenx\AbandonedCheckout\Cron\SendReminders" method="execute">
+            <config_path>magenx_abandoned_checkout/cron/schedule</config_path>
+        </job>
+    </group>
+</config>

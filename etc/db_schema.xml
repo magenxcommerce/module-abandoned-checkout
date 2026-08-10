@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <!--
+        Reminder bookkeeping is carried on the quote itself (no extra table):
+        - magenx_abandoned_notified_at: timestamp of the LAST reminder sent
+          (NULL = never reminded). Used both to skip already-reminded carts and
+          to space out repeat reminders.
+        - magenx_abandoned_reminder_count: how many reminders have gone out, so
+          the cron can honour a "max reminders" cap.
+        These are written with a targeted UPDATE (see ReminderResource) so the
+        quote's own updated_at is NOT bumped — bumping it would push the cart
+        back out of the abandoned window.
+    -->
+    <table name="quote" resource="checkout" engine="innodb">
+        <column xsi:type="timestamp" name="magenx_abandoned_notified_at" on_update="false" nullable="true"
+                comment="Abandoned cart: when the last reminder was sent (NULL = never)"/>
+        <column xsi:type="smallint" name="magenx_abandoned_reminder_count" unsigned="true" nullable="false" default="0"
+                comment="Abandoned cart: number of reminders sent for this quote"/>
+        <index referenceId="MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED" indexType="btree">
+            <column name="is_active"/>
+            <column name="magenx_abandoned_notified_at"/>
+            <column name="updated_at"/>
+        </index>
+    </table>
+</schema>

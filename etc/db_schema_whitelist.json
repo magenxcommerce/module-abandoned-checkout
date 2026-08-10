@@ -1,0 +1,11 @@
+{
+    "quote": {
+        "column": {
+            "magenx_abandoned_notified_at": true,
+            "magenx_abandoned_reminder_count": true
+        },
+        "index": {
+            "MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED": true
+        }
+    }
+}

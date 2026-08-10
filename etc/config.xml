@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <magenx_abandoned_checkout>
+            <general>
+                <!-- Off by default: a merchant opts in before any reminder goes out. -->
+                <enabled>0</enabled>
+                <!-- Minutes a cart must sit untouched before the first reminder. -->
+                <delay_minutes>60</delay_minutes>
+                <!-- Do not remind carts older than this (hours) — stale carts / dead emails. -->
+                <max_age_hours>168</max_age_hours>
+                <!-- Maximum reminders per cart (1 = a single reminder). -->
+                <max_reminders>1</max_reminders>
+                <!-- Minimum minutes between repeat reminders when max_reminders > 1. -->
+                <repeat_interval_minutes>1440</repeat_interval_minutes>
+                <!-- How many carts to process per cron run. -->
+                <batch_size>50</batch_size>
+                <!-- Skip carts whose grand total is below this (base currency); 0 = no minimum. -->
+                <min_subtotal>0</min_subtotal>
+            </general>
+            <email>
+                <email_template>magenx_abandoned_checkout_email_email_template</email_template>
+                <sender_email_identity>sales</sender_email_identity>
+                <!-- Storefront path appended to the store base URL for cart recovery.
+                     The masked quote id is added as ?id=... (see ReminderSender). -->
+                <recovery_path>cart/recover</recovery_path>
+            </email>
+            <cron>
+                <schedule>*/15 * * * *</schedule>
+            </cron>
+        </magenx_abandoned_checkout>
+    </default>
+</config>
