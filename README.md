@@ -16,8 +16,10 @@ reminder listing the cart contents with a one-click link back to the cart.
 2. **`Model/AbandonedCartFinder`** issues a single, index-friendly query over
    `quote`: `is_active = 1`, `items_count > 0`, non-empty `customer_email`, no
    `reserved_order_id`, `updated_at` inside a coarse default-scope window, and
-   not-yet-fully-reminded. The `(is_active, magenx_abandoned_notified_at,
-   updated_at)` index added in `db_schema.xml` backs it.
+   not-yet-fully-reminded. The `(is_active, updated_at)` index added in
+   `db_schema.xml` backs the range filter and the `ORDER BY updated_at`
+   directly; `notified_at` / `reminder_count` are cheap unindexed
+   post-filters on the already-narrowed row set.
 3. **`Model/ReminderProcessor`** applies the exact, **store-scoped** rules
    (enabled? past the delay? within max age? under the reminder cap? spaced from
    the last reminder? above the min total?), loads the quote, re-checks it's

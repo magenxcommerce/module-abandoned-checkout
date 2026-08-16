@@ -42,6 +42,9 @@ class ReminderProcessor
             $store = $this->storeManager->getStore($storeId);
         } catch (\Throwable $e) {
             // Orphaned store id — nothing we can do.
+            $this->logger->debug(
+                'Magenx_AbandonedCheckout: could not load store ' . $storeId . ': ' . $e->getMessage()
+            );
             return false;
         }
 
@@ -62,6 +65,10 @@ class ReminderProcessor
             /** @var Quote $quote */
             $quote = $this->quoteRepository->get($candidate['entity_id']);
         } catch (\Throwable $e) {
+            $this->logger->debug(
+                'Magenx_AbandonedCheckout: could not load quote '
+                . $candidate['entity_id'] . ': ' . $e->getMessage()
+            );
             return false;
         }
 
