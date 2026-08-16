@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/magenxcommerce/module-abandoned-checkout/compare/v1.0.0...v1.0.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* Optimize abandoned cart query and improve error logging ([#5](https://github.com/magenxcommerce/module-abandoned-checkout/issues/5)) ([57a86b9](https://github.com/magenxcommerce/module-abandoned-checkout/commit/57a86b91d1b98043d01d28c5f86d72d6ef6f6100))
+
 ## 1.0.0 (2026-08-11)
 
 
