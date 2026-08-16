@@ -59,7 +59,7 @@ class ReminderSender
                     'store' => $storeId,
                 ])
                 ->setTemplateVars([
-                    'customer_name' => $customerName,
+                    'customer_name' => $this->escaper->escapeHtml($customerName),
                     'store_name' => $store->getFrontendName(),
                     'recovery_url' => $this->recoveryUrl->build((int) $quote->getId(), $store),
                     'items_html' => $this->buildItemsHtml($quote, $store),

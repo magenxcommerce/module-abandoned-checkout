@@ -22,9 +22,18 @@
                 comment="Abandoned cart: when the last reminder was sent (NULL = never)"/>
         <column xsi:type="smallint" name="magenx_abandoned_reminder_count" unsigned="true" nullable="false" default="0"
                 comment="Abandoned cart: number of reminders sent for this quote"/>
+        <!--
+            (is_active, updated_at) only: the candidate query's notified_at
+            condition is "IS NULL OR reminder_count < ?" (an OR across two
+            columns), which the optimizer can't use as an equality on a
+            middle index column, so including notified_at here would block
+            the index from serving the updated_at range filter and the
+            ORDER BY updated_at ASC ... LIMIT. notified_at / reminder_count
+            stay as cheap unindexed post-filters on the already-narrowed
+            row set. Reference id is kept as-is (no whitelist change needed).
+        -->
         <index referenceId="MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED" indexType="btree">
             <column name="is_active"/>
-            <column name="magenx_abandoned_notified_at"/>
             <column name="updated_at"/>
         </index>
     </table>
