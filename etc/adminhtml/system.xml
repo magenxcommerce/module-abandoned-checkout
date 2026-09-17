@@ -45,9 +45,27 @@
                     <validate>validate-digits validate-greater-than-zero</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
+                <field id="retry_backoff_minutes" translate="label comment" type="text" sortOrder="55" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Retry Backoff After a Failed Send (minutes)</label>
+                    <comment>How long to wait before re-attempting a cart whose last reminder failed to send.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
                 <field id="batch_size" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Batch Size Per Cron Run</label>
                     <comment>How many carts to process on each cron run.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="max_reminders_per_email" translate="label comment" type="text" sortOrder="62" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Maximum Reminders Per Email Address</label>
+                    <comment><![CDATA[Across <em>all</em> carts in the window below. A cart's email address is never verified, so without this anyone can have your store mail an address repeatedly by creating carts for it. <strong>0 disables the cap.</strong> Global on purpose — a per-store cap would just be spread across store views.]]></comment>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="per_email_window_days" translate="label comment" type="text" sortOrder="64" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Per-Address Cap Window (days)</label>
+                    <comment>How far back the per-address cap counts.</comment>
                     <validate>validate-digits validate-greater-than-zero</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
@@ -71,6 +89,20 @@
                 <field id="recovery_path" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Storefront Recovery Path</label>
                     <comment><![CDATA[Path appended to the store base URL for the "return to cart" link. The masked cart id is added as <code>?id=...</code>. Set per store view if your locale is part of the path (e.g. <code>de/cart/recover</code>).]]></comment>
+                </field>
+                <field id="recovery_secret" translate="label comment" type="obscure" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Recovery Link Secret</label>
+                    <comment><![CDATA[Shared secret used to sign recovery links. Must match the storefront's <code>MAGENX_ABANDONED_RECOVERY_SECRET</code>. Use at least 32 random characters. <strong>No reminders are sent until this is set.</strong>]]></comment>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                </field>
+                <field id="token_ttl_hours" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Recovery Link Lifetime (hours)</label>
+                    <comment>How long a recovery link keeps working. Capped at Maximum Cart Age. Shorter is safer — the link restores the cart to whoever opens it.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                </field>
+                <field id="unsubscribe_path" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Storefront Unsubscribe Path</label>
+                    <comment><![CDATA[Path to your opt-out page; the recipient's address is added as <code>?email=...</code>. Leave empty to render no unsubscribe link — but see the README: these are unsolicited commercial emails and most jurisdictions require an opt-out.]]></comment>
                 </field>
             </group>
             <group id="cron" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">

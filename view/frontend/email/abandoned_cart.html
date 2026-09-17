@@ -10,13 +10,18 @@
 "var recovery_url":"Cart Recovery URL",
 "var items_html|raw":"Cart Items Table",
 "var grand_total":"Cart Grand Total",
+"var unsubscribe_url":"Unsubscribe URL",
 "template config_path=\"design\/email\/footer_template\"":"Email Footer Template",
 "template config_path=\"design\/email\/header_template\"":"Email Header Template"
 } @-->
 
 {{template config_path="design/email/header_template"}}
 
+{{if customer_name}}
 <p class="greeting">{{trans "Hi %customer_name," customer_name=$customer_name}}</p>
+{{else}}
+<p class="greeting">{{trans "Hi there,"}}</p>
+{{/if}}
 
 <p>{{trans "You left some items in your cart at %store_name. We saved them for you — pick up right where you left off." store_name=$store_name}}</p>
 
@@ -38,5 +43,9 @@
 </table>
 
 <p style="color:#888;font-size:12px;">{{trans "If the button does not work, copy and paste this link into your browser:"}}<br>{{var recovery_url}}</p>
+
+{{if unsubscribe_url}}
+<p style="color:#888;font-size:12px;"><a href="{{var unsubscribe_url}}" style="color:#888;">{{trans "Stop receiving cart reminders"}}</a></p>
+{{/if}}
 
 {{template config_path="design/email/footer_template"}}

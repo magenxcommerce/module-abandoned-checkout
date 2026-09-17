@@ -5,7 +5,9 @@
             "magenx_abandoned_reminder_count": true
         },
         "index": {
-            "MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED": true
+            "MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED": true,
+            "MAGENX_ABANDONED_QUOTE_ACTIVE_COUNT_UPDATED": true,
+            "MAGENX_ABANDONED_QUOTE_EMAIL_NOTIFIED": true
         }
     }
 }

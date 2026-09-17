@@ -8,33 +8,48 @@
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
     <!--
         Reminder bookkeeping is carried on the quote itself (no extra table):
-        - magenx_abandoned_notified_at: timestamp of the LAST reminder sent
-          (NULL = never reminded). Used both to skip already-reminded carts and
-          to space out repeat reminders.
-        - magenx_abandoned_reminder_count: how many reminders have gone out, so
-          the cron can honour a "max reminders" cap.
+        - magenx_abandoned_notified_at: timestamp of the last send ATTEMPT,
+          successful or not (NULL = never attempted). It is written as a
+          compare-and-swap before the send, so it doubles as the claim that
+          keeps concurrent cron runs from double-sending, and as the backoff
+          that keeps an unsendable cart from occupying every batch.
+        - magenx_abandoned_reminder_count: how many reminders were SUCCESSFULLY
+          sent, so the cron can honour a "max reminders" cap. A row with a
+          recent attempt and a count of 0 is one whose sends keep failing.
         These are written with a targeted UPDATE (see ReminderResource) so the
         quote's own updated_at is NOT bumped — bumping it would push the cart
         back out of the abandoned window.
     -->
     <table name="quote" resource="checkout" engine="innodb">
         <column xsi:type="timestamp" name="magenx_abandoned_notified_at" on_update="false" nullable="true"
-                comment="Abandoned cart: when the last reminder was sent (NULL = never)"/>
+                comment="Abandoned cart: when the last reminder was ATTEMPTED (NULL = never)"/>
         <column xsi:type="smallint" name="magenx_abandoned_reminder_count" unsigned="true" nullable="false" default="0"
                 comment="Abandoned cart: number of reminders sent for this quote"/>
         <!--
-            (is_active, updated_at) only: the candidate query's notified_at
-            condition is "IS NULL OR reminder_count < ?" (an OR across two
-            columns), which the optimizer can't use as an equality on a
-            middle index column, so including notified_at here would block
-            the index from serving the updated_at range filter and the
-            ORDER BY updated_at ASC ... LIMIT. notified_at / reminder_count
-            stay as cheap unindexed post-filters on the already-narrowed
-            row set. Reference id is kept as-is (no whitelist change needed).
+            (is_active, magenx_abandoned_reminder_count, updated_at), in that
+            order, mirrors the candidate query exactly: is_active is an equality,
+            the reminder count is an IN over the small set of counts still under
+            the cap (a single value at the default max_reminders = 1), and
+            updated_at carries both the range filter and the ORDER BY ... LIMIT.
+            That lets the optimizer stop at the LIMIT instead of scanning the
+            whole time window, which is what the previous (is_active, updated_at)
+            index forced on every run once the carts in the window had all been
+            reminded — the steady state on a live store.
         -->
-        <index referenceId="MAGENX_ABANDONED_QUOTE_IS_ACTIVE_NOTIFIED_UPDATED" indexType="btree">
+        <index referenceId="MAGENX_ABANDONED_QUOTE_ACTIVE_COUNT_UPDATED" indexType="btree">
             <column name="is_active"/>
+            <column name="magenx_abandoned_reminder_count"/>
             <column name="updated_at"/>
+        </index>
+        <!--
+            Backs the per-recipient cap's grouped lookup
+            (customer_email IN (…) AND magenx_abandoned_notified_at >= …), which
+            without it is a full scan of `quote` on every cron run. Equality
+            column first, then the range column.
+        -->
+        <index referenceId="MAGENX_ABANDONED_QUOTE_EMAIL_NOTIFIED" indexType="btree">
+            <column name="customer_email"/>
+            <column name="magenx_abandoned_notified_at"/>
         </index>
     </table>
 </schema>

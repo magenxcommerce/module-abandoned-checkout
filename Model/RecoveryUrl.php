@@ -6,54 +6,76 @@ declare(strict_types=1);
 
 namespace Magenx\AbandonedCheckout\Model;
 
-use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Framework\UrlInterface;
 use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
-use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResource;
 use Magento\Store\Api\Data\StoreInterface;
 
 /**
  * Builds the "return to your cart" recovery link.
  *
- * The headless storefront keys its cart on the MASKED quote id (the same value
- * createEmptyCart / customerCart return), stored in the browser's
- * localStorage["magenx_cart_id"]. So the recovery link carries the masked id;
- * the storefront /cart/recover route writes it to localStorage and redirects to
- * the cart. A mask is created on demand for customer carts that don't have one
- * yet (guest carts always do).
+ * GUEST CARTS get a link carrying a signed, expiring token (see RecoveryToken);
+ * the storefront exchanges it server-side for the masked cart id and restores
+ * the cart.
+ *
+ * CUSTOMER CARTS get a plain link to the same storefront route with NO token.
+ * We deliberately do not mint a `quote_id_mask` for them: masks exist for guest
+ * carts, and Magento's REST guest-cart endpoints resolve a mask to a quote
+ * without checking that the quote has no customer attached — so mailing a mask
+ * for a logged-in customer's cart can hand whoever holds the link that
+ * customer's cart, including the name, email and addresses saved on it. A
+ * signed-in shopper does not need one anyway: `customerCart` resolves their
+ * cart from their session once they land on the storefront.
  */
 class RecoveryUrl
 {
     public function __construct(
         private readonly Config $config,
-        private readonly QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId,
-        private readonly QuoteIdMaskFactory $quoteIdMaskFactory,
-        private readonly QuoteIdMaskResource $quoteIdMaskResource
+        private readonly RecoveryToken $token,
+        private readonly QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
     ) {
     }
 
     public function build(int $quoteId, StoreInterface $store): string
     {
-        $maskedId = $this->resolveMaskedId($quoteId);
+        $storeId = (int) $store->getId();
+        $maskedId = $this->quoteIdToMaskedQuoteId->execute($quoteId);
 
-        $base = rtrim($store->getBaseUrl(), '/');
-        $path = $this->config->getRecoveryPath((int) $store->getId());
+        $query = $maskedId === '' ? [] : ['t' => $this->token->issue($maskedId, $storeId)];
 
-        return $base . '/' . $path . '?id=' . rawurlencode($maskedId);
+        return $this->url($store, $this->config->getRecoveryPath($storeId), $query);
     }
 
-    private function resolveMaskedId(int $quoteId): string
+    /**
+     * Opt-out link, or null when the merchant has not configured one.
+     */
+    public function buildUnsubscribe(StoreInterface $store, string $email): ?string
     {
-        $maskedId = $this->quoteIdToMaskedQuoteId->execute($quoteId);
-        if ($maskedId !== '') {
-            return $maskedId;
-        }
+        $storeId = (int) $store->getId();
+        $path = $this->config->getUnsubscribePath($storeId);
 
-        // Customer carts may not have a mask yet — create one (QuoteIdMask
-        // generates the random masked id on save).
-        $quoteIdMask = $this->quoteIdMaskFactory->create();
-        $quoteIdMask->setQuoteId($quoteId);
-        $this->quoteIdMaskResource->save($quoteIdMask);
+        return $path === '' ? null : $this->url($store, $path, ['email' => $email]);
+    }
 
-        return (string) $quoteIdMask->getMaskedId();
+    /**
+     * @param array<string, string> $query
+     */
+    private function url(StoreInterface $store, string $path, array $query): string
+    {
+        // URL_TYPE_WEB, and $secure pinned to true: the default (URL_TYPE_LINK)
+        // runs the path through Magento's own rewrite config and can inject
+        // `index.php`, which is meaningless to a headless storefront, and it
+        // resolves the scheme from `web/secure/use_in_frontend` — a flag that is
+        // commonly left off behind a TLS-terminating proxy, which would mail a
+        // credential-bearing link over plain http.
+        $base = rtrim($store->getBaseUrl(UrlInterface::URL_TYPE_WEB, true), '/');
+
+        // The path is admin-supplied and may already carry a query string
+        // (e.g. "cart/recover?ref=email"), so pick the right separator rather
+        // than always appending "?" — that produced a malformed
+        // "…?ref=email?t=…" that no router would parse.
+        $url = $base . '/' . $path;
+        $separator = str_contains($path, '?') ? '&' : '?';
+
+        return $query === [] ? $url : $url . $separator . http_build_query($query);
     }
 }
