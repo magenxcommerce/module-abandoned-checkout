@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/magenxcommerce/module-abandoned-checkout/compare/v1.0.1...v1.0.2) (2026-09-17)
+
+
+### Bug Fixes
+
+* harden reminder batching, recovery tokens and cart handover ([#8](https://github.com/magenxcommerce/module-abandoned-checkout/issues/8)) ([3f39e8c](https://github.com/magenxcommerce/module-abandoned-checkout/commit/3f39e8c0d328acb25753ce1541db34b90d9003b3))
+
 ## [1.0.1](https://github.com/magenxcommerce/module-abandoned-checkout/compare/v1.0.0...v1.0.1) (2026-08-16)
 
 
