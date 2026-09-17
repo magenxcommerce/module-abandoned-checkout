@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AbandonedCheckout\Cron;
 
 use Magenx\AbandonedCheckout\Model\AbandonedCartFinder;
+use Magenx\AbandonedCheckout\Model\RecipientQuota;
 use Magenx\AbandonedCheckout\Model\ReminderProcessor;
 use Psr\Log\LoggerInterface;
 
@@ -21,6 +22,7 @@ class SendReminders
     public function __construct(
         private readonly AbandonedCartFinder $finder,
         private readonly ReminderProcessor $processor,
+        private readonly RecipientQuota $quota,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -37,6 +39,9 @@ class SendReminders
         if ($candidates === []) {
             return;
         }
+
+        // One grouped query for the whole batch rather than one per candidate.
+        $this->quota->prime(array_column($candidates, 'customer_email'));
 
         $sent = 0;
         foreach ($candidates as $candidate) {

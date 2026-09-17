@@ -39,7 +39,7 @@ class AbandonedCartFinder
 
     /**
      * @return array<int, array{entity_id:int, store_id:int, updated_at:string,
-     *     notified_at:?string, reminder_count:int}>
+     *     customer_email:string, notified_at:?string, reminder_count:int}>
      */
     public function getCandidates(): array
     {
@@ -65,6 +65,7 @@ class AbandonedCartFinder
                     'entity_id',
                     'store_id',
                     'updated_at',
+                    'customer_email',
                     'notified_at' => 'magenx_abandoned_notified_at',
                     'reminder_count' => 'magenx_abandoned_reminder_count',
                 ]
@@ -104,6 +105,7 @@ class AbandonedCartFinder
                 'entity_id' => (int) $row['entity_id'],
                 'store_id' => (int) $row['store_id'],
                 'updated_at' => (string) $row['updated_at'],
+                'customer_email' => (string) $row['customer_email'],
                 'notified_at' => $row['notified_at'] !== null ? (string) $row['notified_at'] : null,
                 'reminder_count' => (int) $row['reminder_count'],
             ],

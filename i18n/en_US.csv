@@ -41,3 +41,6 @@
 "Storefront Unsubscribe Path","Storefront Unsubscribe Path"
 "Hi there,","Hi there,"
 "Stop receiving cart reminders","Stop receiving cart reminders"
+"Maximum Reminders Per Email Address","Maximum Reminders Per Email Address"
+"Per-Address Cap Window (days)","Per-Address Cap Window (days)"
+"How far back the per-address cap counts.","How far back the per-address cap counts."

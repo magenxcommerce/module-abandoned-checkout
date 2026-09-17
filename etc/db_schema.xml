@@ -41,5 +41,15 @@
             <column name="magenx_abandoned_reminder_count"/>
             <column name="updated_at"/>
         </index>
+        <!--
+            Backs the per-recipient cap's grouped lookup
+            (customer_email IN (…) AND magenx_abandoned_notified_at >= …), which
+            without it is a full scan of `quote` on every cron run. Equality
+            column first, then the range column.
+        -->
+        <index referenceId="MAGENX_ABANDONED_QUOTE_EMAIL_NOTIFIED" indexType="btree">
+            <column name="customer_email"/>
+            <column name="magenx_abandoned_notified_at"/>
+        </index>
     </table>
 </schema>

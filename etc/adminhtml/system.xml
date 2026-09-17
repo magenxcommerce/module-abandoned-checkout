@@ -57,6 +57,18 @@
                     <validate>validate-digits validate-greater-than-zero</validate>
                     <depends><field id="enabled">1</field></depends>
                 </field>
+                <field id="max_reminders_per_email" translate="label comment" type="text" sortOrder="62" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Maximum Reminders Per Email Address</label>
+                    <comment><![CDATA[Across <em>all</em> carts in the window below. A cart's email address is never verified, so without this anyone can have your store mail an address repeatedly by creating carts for it. <strong>0 disables the cap.</strong> Global on purpose — a per-store cap would just be spread across store views.]]></comment>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="per_email_window_days" translate="label comment" type="text" sortOrder="64" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Per-Address Cap Window (days)</label>
+                    <comment>How far back the per-address cap counts.</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
                 <field id="min_subtotal" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Minimum Cart Total</label>
                     <comment>Skip carts whose grand total (base currency) is below this. 0 = no minimum.</comment>

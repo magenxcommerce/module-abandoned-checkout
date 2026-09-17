@@ -29,6 +29,8 @@ class Config
     private const XML_RETRY_BACKOFF = 'magenx_abandoned_checkout/general/retry_backoff_minutes';
     private const XML_BATCH_SIZE = 'magenx_abandoned_checkout/general/batch_size';
     private const XML_MIN_SUBTOTAL = 'magenx_abandoned_checkout/general/min_subtotal';
+    private const XML_MAX_PER_EMAIL = 'magenx_abandoned_checkout/general/max_reminders_per_email';
+    private const XML_PER_EMAIL_WINDOW_DAYS = 'magenx_abandoned_checkout/general/per_email_window_days';
     private const XML_TEMPLATE = 'magenx_abandoned_checkout/email/email_template';
     private const XML_SENDER = 'magenx_abandoned_checkout/email/sender_email_identity';
     private const XML_RECOVERY_PATH = 'magenx_abandoned_checkout/email/recovery_path';
@@ -86,6 +88,30 @@ class Config
     public function getBatchSize(): int
     {
         return max(1, (int) $this->scopeConfig->getValue(self::XML_BATCH_SIZE));
+    }
+
+    /**
+     * Reminders one address may receive across ALL carts in the window, or 0 for
+     * no cap.
+     *
+     * Read at default scope, like the window below and the batch size: this is
+     * an abuse control rather than a marketing knob, and the counts behind it
+     * are global, so letting a single store view raise its own cap would just
+     * be a way around it.
+     */
+    public function getMaxRemindersPerEmail(): int
+    {
+        return max(0, (int) $this->scopeConfig->getValue(self::XML_MAX_PER_EMAIL));
+    }
+
+    public function getPerEmailWindowDays(): int
+    {
+        return max(1, (int) $this->scopeConfig->getValue(self::XML_PER_EMAIL_WINDOW_DAYS));
+    }
+
+    public function isPerEmailCapEnabled(): bool
+    {
+        return $this->getMaxRemindersPerEmail() > 0;
     }
 
     public function getMinSubtotal(?int $storeId = null): float

@@ -32,6 +32,7 @@ class ReminderProcessor
         private readonly CartRepositoryInterface $quoteRepository,
         private readonly StoreManagerInterface $storeManager,
         private readonly ReminderSender $sender,
+        private readonly RecipientQuota $quota,
         private readonly ReminderResource $reminderResource,
         private readonly DateTime $date,
         private readonly LoggerInterface $logger
@@ -39,7 +40,8 @@ class ReminderProcessor
     }
 
     /**
-     * @param array{entity_id:int, store_id:int, updated_at:string, notified_at:?string, reminder_count:int} $candidate
+     * @param array{entity_id:int, store_id:int, updated_at:string, customer_email:string,
+     *     notified_at:?string, reminder_count:int} $candidate
      * @return bool True if a reminder was actually sent.
      */
     public function process(array $candidate): bool
@@ -63,6 +65,13 @@ class ReminderProcessor
 
         // Compare-and-swap on the attempt stamp: whoever wins owns this send.
         if (!$this->reminderResource->claimAttempt($quoteId, $candidate['notified_at'], $this->date->gmtDate())) {
+            return false;
+        }
+
+        // Checked after the claim, so an address that is over its cap is backed
+        // off like any other rejection instead of returning on every tick — and
+        // before the quote is loaded, because a capped cart needs nothing else.
+        if (!$this->quota->allows($candidate['customer_email'])) {
             return false;
         }
 
@@ -99,6 +108,8 @@ class ReminderProcessor
             );
             return false;
         }
+
+        $this->quota->record($candidate['customer_email']);
 
         return $this->reminderResource->markNotified($quoteId, $candidate['reminder_count'], $this->date->gmtDate());
     }

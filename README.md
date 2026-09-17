@@ -125,6 +125,8 @@ storefront middleware to resolve the locale.
 | Min interval between reminders (min) | `…/general/repeat_interval_minutes` | 1440 |
 | Retry backoff after a failed send (min) | `…/general/retry_backoff_minutes` | 60 |
 | Batch size per cron run | `…/general/batch_size` | 50 |
+| Max reminders per email address | `…/general/max_reminders_per_email` | 3 |
+| Per-address cap window (days) | `…/general/per_email_window_days` | 30 |
 | Minimum cart total | `…/general/min_subtotal` | 0 |
 | Email template | `…/email/email_template` | `magenx_abandoned_checkout_email_email_template` |
 | Email sender | `…/email/sender_email_identity` | `sales` |
@@ -140,18 +142,48 @@ SQL bounds from the **most permissive** value in use across the enabled stores,
 so a store view that shortens the delay, lengthens the max age or raises the
 reminder cap is not silently starved by the default-scope value.
 
+## Per-recipient cap
+
+**Maximum Reminders Per Email Address** (default 3, over a 30-day window) bounds
+what any one address can receive across *all* carts, so minting more carts stops
+helping. `Model/RecipientQuota` primes it with one grouped query per cron run and
+keeps the tally in memory as the run sends — a batch that is entirely the same
+address is caught within that run, not only on the next one. Counts are global
+rather than per store view, and the setting is default-scope only, because a
+per-store cap would just be spread across store views.
+
+Two things to know:
+
+- It is **conservative by design**. The count sums `reminder_count` for quotes
+  whose last attempt falls in the window, so with `max_reminders > 1` an older
+  reminder on the same quote can be counted as if it were recent. That errs
+  toward withholding, which is the right direction here.
+- It backs a capped cart off rather than dropping it. The attempt is claimed
+  first, so a capped address returns on the retry backoff instead of every tick,
+  and the reminder is not lost — the cart is still a candidate once the window
+  frees up.
+
+Set it to **0** to disable the cap entirely. Don't, unless something upstream is
+already doing this job.
+
+`db_schema.xml` adds `(customer_email, magenx_abandoned_notified_at)` to back the
+lookup; without it the grouped query is a full scan of `quote` every run.
+
 ## Notes / limits
 
 - Guest carts only get a reminder once they have a `customer_email` on the quote
   (typically captured at the email/shipping step). Logged-in customers always
   have one.
-- **That address is never verified.** Anyone can build a cart, type an arbitrary
-  address and walk away, which makes this an outbound-mail amplifier: your store
-  will mail whatever was typed. Before enabling it against real traffic, put a
-  suppression list and a per-address send cap in front of it, and set
-  **Storefront Unsubscribe Path** — these are unsolicited commercial emails, and
-  most jurisdictions require a working opt-out. The module renders the link when
-  the path is set; honouring it is the storefront's job.
+- **That address is never verified**, and on a headless storefront
+  `setGuestEmailOnCart` is a public mutation, so anyone can mint carts addressed
+  to someone else and have your store mail them. Per cart that is bounded — one
+  reminder, after the delay — but the number of carts is not, which is what makes
+  a single address unboundedly spammable. See the cap below.
+- Still your job before pointing this at real traffic: set **Storefront
+  Unsubscribe Path** and honour it, and feed bounces / complaints into a
+  suppression list. These are unsolicited commercial emails and most
+  jurisdictions require a working opt-out; the module renders the link when the
+  path is set, but nothing here enforces the opt-out.
 - Delivery is **at-least-once**. The attempt is claimed before the send, so a
   crash between the send and the counter write leaves a reminder that was
   delivered but not counted; it can go out again after the backoff.

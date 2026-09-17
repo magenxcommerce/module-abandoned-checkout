@@ -22,6 +22,11 @@
                 <retry_backoff_minutes>60</retry_backoff_minutes>
                 <!-- How many carts to process per cron run. -->
                 <batch_size>50</batch_size>
+                <!-- Max reminders ONE address may receive across all carts in the
+                     window below; 0 = no cap. A quote's email is never verified,
+                     so this is what stops an address being mailed repeatedly. -->
+                <max_reminders_per_email>3</max_reminders_per_email>
+                <per_email_window_days>30</per_email_window_days>
                 <!-- Skip carts whose grand total is below this (base currency); 0 = no minimum. -->
                 <min_subtotal>0</min_subtotal>
             </general>
