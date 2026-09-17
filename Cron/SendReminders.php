@@ -13,11 +13,8 @@ use Psr\Log\LoggerInterface;
 /**
  * Cron entry point: fetch a batch of abandoned carts and send reminders.
  *
- * Enablement is per store, so the cron always runs the (single, indexed)
- * candidate query and lets the processor apply the per-store eligibility check
- * — this correctly handles a store view that overrides the default-scope flag
- * on. All decisions live in the finder (candidate SQL) and the processor
- * (per-store timing / min-total / enablement); the cron just iterates.
+ * All decisions live in the finder (candidate SQL) and the processor (per-store
+ * timing / min-total / enablement); the cron just iterates and reports.
  */
 class SendReminders
 {
@@ -30,7 +27,13 @@ class SendReminders
 
     public function execute(): void
     {
-        $candidates = $this->finder->getCandidates();
+        try {
+            $candidates = $this->finder->getCandidates();
+        } catch (\Throwable $e) {
+            $this->logger->error('Magenx_AbandonedCheckout: candidate query failed: ' . $e->getMessage());
+            return;
+        }
+
         if ($candidates === []) {
             return;
         }
@@ -42,14 +45,17 @@ class SendReminders
             }
         }
 
-        if ($sent > 0) {
-            $this->logger->info(
-                sprintf(
-                    'Magenx_AbandonedCheckout: sent %d reminder(s) out of %d candidate(s).',
-                    $sent,
-                    count($candidates)
-                )
-            );
-        }
+        // Logged whenever there were candidates, including when NONE of them
+        // were sent. A run that finds work and does nothing with it is the shape
+        // a stalled batch takes, and logging only the happy path made it
+        // indistinguishable from an idle store.
+        $this->logger->info(
+            sprintf(
+                'Magenx_AbandonedCheckout: sent %d reminder(s), skipped %d, out of %d candidate(s).',
+                $sent,
+                count($candidates) - $sent,
+                count($candidates)
+            )
+        );
     }
 }

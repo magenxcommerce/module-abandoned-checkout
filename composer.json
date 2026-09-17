@@ -1,6 +1,6 @@
 {
     "name": "magenxcommerce/module-abandoned-checkout",
-    "description": "Abandoned checkout reminder: a cron scans active quotes that have items and a captured email but were left untouched past a configurable delay, and emails the shopper a recovery reminder with their cart contents and a one-click link back to the cart. Tracks reminders on the quote so a cart is only reminded once (or up to a configurable cap).",
+    "description": "Abandoned checkout reminder: a cron scans active quotes that have items and a captured email but were left untouched past a configurable delay, and emails the shopper a recovery reminder with their cart contents and a one-click link back to the cart. Tracks reminders on the quote so a cart is only reminded once (or up to a configurable cap). The recovery link carries a signed, expiring token rather than the cart id itself.",
     "config": {
         "sort-packages": true
     },
@@ -9,6 +9,8 @@
         "magento/framework": "*",
         "magento/module-backend": "*",
         "magento/module-config": "*",
+        "magento/module-cron": "*",
+        "magento/module-email": "*",
         "magento/module-quote": "*",
         "magento/module-store": "*"
     },
